@@ -8,16 +8,18 @@ import java.io.*;
 
 public class PDWorker {
 
-    public static void maskingPD(String path) throws IOException, InvalidFormatException {
+    public static void maskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
-        MaskMatcher.mask(table);
+        String[] hashCode = Integer.toString(password.hashCode()).split("");
+        MaskMatcher.mask(table, hashCode);
         String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\mask_table.xls";
         FileManager.saver(table, newFilePath);
     }
 
-    public static void demaskingPD(String path) throws IOException, InvalidFormatException {
+    public static void demaskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
-        DemaskMatcher.demask(table);
+        String[] hashCode = Integer.toString(password.hashCode()).split("");
+        DemaskMatcher.demask(table, hashCode);
         String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\demask_table.xls";
         FileManager.saver(table, newFilePath);
     }
@@ -67,10 +69,10 @@ class MaskMatcher{
         return (int)Math.pow(-1,i)*(m%n)*i;
     }
 
-    public static void mask(String[][] tmp){
+    public static void mask(String[][] tmp, String[] hash){
         columnMixer(tmp);// мешаем колонны
         for (int i = 0; i < tmp.length; i++) {
-            rowCellMixer(tmp[i]);//мешаем ячейки в зависимости от типа
+            rowCellMixer(tmp[i], hash);//мешаем ячейки в зависимости от типа
         }
     }
 
@@ -91,26 +93,26 @@ class MaskMatcher{
     }
 
 
-    private static void rowCellMixer(String[] str){
+    private static void rowCellMixer(String[] str,String[] hash){
         for (int i = 0; i < str.length; i++) {
             if(isPhone(str[i])){
-                movePhone(str[i]);
+                movePhone(str[i], hash);
                 continue;
             }
             if(isCard(str[i])){
-                moveCard(str[i]);
+                moveCard(str[i], hash);
                 continue;
             }
             if(isDate(str[i])){
-                moveDate(str[i]);
+                moveDate(str[i], hash);
                 continue;
             }
             if(isPassport(str[i])){
-                movePassport(str[i]);
+                movePassport(str[i], hash);
                 continue;
             }
             if(isMail(str[i])){
-                moveMail(str[i]);
+                moveMail(str[i], hash);
                 continue;
             }
         }
@@ -118,12 +120,20 @@ class MaskMatcher{
 
 
     protected static boolean isPhone(String str){
-        if(str.matches("^((\\+7|7|8)+([0-9]){10})$")) return true;
+        if(str.matches("^((\\+7|7|\\+8|8)+([0-9]){10})$")) return true;
         else return false;
     }
 
-    private static String movePhone(String str){
-        return str;
+    private static String movePhone(String str, String[] hashCode){
+        String[] subName = str.substring(str.length()-9).split("");
+        String newPhone = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            newPhone+=(Integer.parseInt(subName[i])+Integer.parseInt(hashCode[k]))%10;
+            k++;
+        }
+        return newPhone;
     }
 
     protected static boolean isMail(String str){
@@ -131,8 +141,17 @@ class MaskMatcher{
         else return false;
     }
 
-    private static String moveMail(String str){
-        return str;
+    private static String moveMail(String str, String[] hashCode){
+        char[] subName = str.substring(0,str.lastIndexOf("@")).toCharArray();
+
+        String newMail = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            newMail+=(char)((int)subName[i]+Integer.parseInt(hashCode[k]));
+            k++;
+        }
+        return newMail+str.substring(str.lastIndexOf("@"));
     }
 
     protected static boolean isDate(String str){
@@ -140,8 +159,34 @@ class MaskMatcher{
         else return false;
     }
 
-    private static String moveDate(String str){
-        return str;
+    private static String moveDate(String str, String[] hashCode){
+        int day = Integer.parseInt(str.substring(0,2))+Integer.parseInt(hashCode[0]);
+        int month= (Integer.parseInt(str.substring(3,5))+Integer.parseInt(hashCode[1]));
+        int year= (Integer.parseInt(str.substring(6,10))+Integer.parseInt(hashCode[2]));
+        if (month > 12){
+            month%=12;
+            System.out.println(month);
+        }
+        if (month %2 != 0 && day > 30 ){
+            day%=30;
+        }
+        else{
+            day%=32;
+        }
+        String newDate ="";
+        if (day < 10){
+            newDate+= "0"+day+".";
+        }
+        else {
+            newDate+= day+".";
+        }
+        if (month < 10) {
+            newDate+= "0"+month+".";
+        }
+        else{
+            newDate+= month+".";
+        }
+        return newDate+year;
     }
 
     protected static boolean isPassport(String str){
@@ -149,8 +194,21 @@ class MaskMatcher{
         else return false;
     }
 
-    private static String movePassport(String str){
-        return str;
+    private static String movePassport(String str, String[] hashCode){
+        String[] subName = str.split("");
+        String newPassport = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            if(subName[i].equals(" ")) {
+                newPassport+=" ";
+            }
+            else{
+                newPassport += (Integer.parseInt(subName[i]) + Integer.parseInt(hashCode[k])) % 10;
+                k++;
+            }
+        }
+        return newPassport;
     }
 
     protected static boolean isCard(String str){
@@ -158,8 +216,21 @@ class MaskMatcher{
         else return false;
     }
 
-    private static String moveCard(String str){
-        return str;
+    private static String moveCard(String str, String[] hashCode){
+        String[] subName = str.split("");
+        String newCard = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            if(subName[i].equals(" ")) {
+                newCard+=" ";
+            }
+            else{
+                newCard += (Integer.parseInt(subName[i]) + Integer.parseInt(hashCode[k])) % 10;
+                k++;
+            }
+        }
+        return newCard;
     }
 
     protected static void moveColumnUp(String[][] table, int j){
@@ -181,9 +252,9 @@ class MaskMatcher{
 
 class DemaskMatcher extends MaskMatcher{
 
-    public static void demask(String[][] table){
+    public static void demask(String[][] table, String[] hash){
         for (int i = 0; i < table.length; i++) {
-            rowCellDemixer(table[i]);//мешаем ячейки в зависимости от типа
+            rowCellDemixer(table[i],hash);//мешаем ячейки в зависимости от типа
         }
         columnDemixer(table);// мешаем колонны
 
@@ -206,48 +277,127 @@ class DemaskMatcher extends MaskMatcher{
     }
 
 
-   private static void rowCellDemixer(String[] str){
+   private static void rowCellDemixer(String[] str, String[] hash){
         for (int i = 0; i < str.length; i++) {
             if(isPhone(str[i])){
-                movePhone(str[i]);
+                demovePhone(str[i], hash);
                 continue;
             }
             if(isCard(str[i])){
-                moveCard(str[i]);
+                demoveCard(str[i], hash);
                 continue;
             }
             if(isDate(str[i])){
-                moveDate(str[i]);
+                demoveDate(str[i], hash);
                 continue;
             }
             if(isPassport(str[i])){
-                movePassport(str[i]);
+                demovePassport(str[i], hash);
                 continue;
             }
             if(isMail(str[i])){
-                moveMail(str[i]);
+                demoveMail(str[i], hash);
                 continue;
             }
         }
     }
 
-    private static String movePhone(String str){
-        return str;
+    private static String demovePhone(String str, String[] hashCode){
+        String[] subName = str.substring(str.length()-9).split("");
+        String newPhone = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            int tmp = Integer.parseInt(subName[i]) - Integer.parseInt(hashCode[k]);
+            if (tmp < 0) {
+                newPhone += (10 +tmp);
+            }
+            else{
+                newPhone += tmp;
+            }
+            k++;
+        }
+        return newPhone;
     }
 
-    private static String moveMail(String str){
-        return str;
+    private static String demoveMail(String str, String[] hashCode){
+        char[] subName = str.substring(0,str.lastIndexOf("@")).toCharArray();
+
+        String newMail = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            newMail+=(char)((int)subName[i]-Integer.parseInt(hashCode[k]));
+            k++;
+        }
+        return newMail+str.substring(str.lastIndexOf("@"));
     }
 
-    private static String moveDate(String str){
-        return str;
+    private static String demoveDate(String str, String[] hashCode){
+        int day = Integer.parseInt(str.substring(0,2))+Integer.parseInt(hashCode[0]);
+        int month= (Integer.parseInt(str.substring(3,5))+Integer.parseInt(hashCode[1]));
+        int year= (Integer.parseInt(str.substring(6,10))+Integer.parseInt(hashCode[2]));
+        if (month > 12){
+            month%=12;
+            System.out.println(month);
+        }
+        if (month %2 != 0 && day > 30 ){
+            day%=30;
+        }
+        else{
+            day%=32;
+        }
+        if (day < 10){
+            return "0"+day+"."+month+"."+year;
+        }
+        return day+"."+month+"."+year;
     }
 
-    private static String movePassport(String str){
-        return str;
+
+    private static String demovePassport(String str, String[] hashCode){
+        String[] subName = str.split("");
+        String newPassport = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            if(subName[i].equals(" ")) {
+                newPassport+=" ";
+            }
+            else{
+                int tmp = Integer.parseInt(subName[i]) - Integer.parseInt(hashCode[k]);
+                if (tmp < 0) {
+                    newPassport += (10 +tmp);
+                }
+                else{
+                    newPassport += tmp;
+                }
+                k++;
+            }
+        }
+        return newPassport;
     }
 
-    private static String moveCard(String str){
-        return str;
+
+    private static String demoveCard(String str, String[] hashCode){
+        String[] subName = str.split("");
+        String newCard = "";
+        int k=0;
+        for (int i = 0 ; i < subName.length; i++){
+            if (k > hashCode.length -1) {k=0;}
+            if(subName[i].equals(" ")) {
+                newCard+=" ";
+            }
+            else{
+                int tmp = Integer.parseInt(subName[i]) - Integer.parseInt(hashCode[k]);
+                if (tmp < 0) {
+                    newCard += (10 +tmp);
+                }
+                else{
+                    newCard += tmp;
+                }
+                k++;
+            }
+        }
+        return newCard;
     }
 }
