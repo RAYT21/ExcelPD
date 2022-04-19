@@ -3,6 +3,8 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
 
@@ -10,17 +12,49 @@ public class PDWorker {
 
     public static void maskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
+        for (int i = 0; i < table.length; i++) {
+            System.out.printf("// ");
+            for (int j = 0; j < table[i].length; j++) {
+                System.out.printf(table[i][j] + " ");
+            }
+            System.out.printf("//");
+            System.out.println(" ");
+        }
         String[] hashCode = Integer.toString(password.hashCode()).split("");
         MaskMatcher.mask(table, hashCode);
-        String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\mask_table.xls";
+        String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\mask_table.xlsx";
+        for (int i = 0; i < table.length; i++) {
+            System.out.printf("// ");
+            for (int j = 0; j < table[i].length; j++) {
+                System.out.printf(table[i][j] + " ");
+            }
+            System.out.printf("//");
+            System.out.println(" ");
+        }
         FileManager.saver(table, newFilePath);
     }
 
     public static void demaskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
         String[] hashCode = Integer.toString(password.hashCode()).split("");
+        for (int i = 0; i < table.length; i++) {
+            System.out.printf("// ");
+            for (int j = 0; j < table[i].length; j++) {
+                System.out.printf(table[i][j] + " ");
+            }
+            System.out.printf("//");
+            System.out.println(" ");
+        }
         DemaskMatcher.demask(table, hashCode);
-        String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\demask_table.xls";
+        String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\demask_table.xlsx";
+        for (int i = 0; i < table.length; i++) {
+            System.out.printf("// ");
+            for (int j = 0; j < table[i].length; j++) {
+                System.out.printf(table[i][j] + " ");
+            }
+            System.out.printf("//");
+            System.out.println(" ");
+        }
         FileManager.saver(table, newFilePath);
     }
 }
@@ -28,8 +62,10 @@ public class PDWorker {
 class FileManager {
 
     public static String[][] reader(String fileName) throws IOException, InvalidFormatException {
-        Workbook workbook = new HSSFWorkbook(new POIFSFileSystem(new FileInputStream(fileName)));
-        Sheet sheet = workbook.getSheetAt(0);
+
+        FileInputStream inputStream = new FileInputStream(new File(fileName));
+        XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
+        XSSFSheet sheet = workbook.getSheetAt(0);
         int nbLine = sheet.getLastRowNum() + 1;
         int nbCol = sheet.getRow(0).getLastCellNum();
         String[][] table = new String[nbLine][nbCol];
@@ -44,8 +80,8 @@ class FileManager {
     }
 
     public static void saver(String[][] table, String fileName) throws IOException {
-        HSSFWorkbook workbook = new HSSFWorkbook();
-        HSSFSheet sheet = workbook.createSheet("New List1");
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet("New List1");
 
         for (int i = 0; i < table.length; i++) {
             Row row = sheet.createRow(i);
@@ -62,25 +98,25 @@ class FileManager {
     }
 }
 
-//дописать преобразователи строк в метчеры
 class MaskMatcher{
 
-    protected static int func(int i, int m,int n){ //позволяет определить сдвиг относительно столбца
-        return (int)Math.pow(-1,i)*(m%n)*i;
+    protected static int func(int i, String[] hashCode){
+        int k = i% (hashCode.length - 1);
+        return (int)Math.pow(-1,i)*Integer.parseInt(hashCode[k])*(i+1);
     }
 
     public static void mask(String[][] tmp, String[] hash){
-        columnMixer(tmp);// мешаем колонны
+        columnMixer(tmp,hash);// мешаем колонны
         for (int i = 0; i < tmp.length; i++) {
             rowCellMixer(tmp[i], hash);//мешаем ячейки в зависимости от типа
         }
     }
 
-    private static void columnMixer(String[][] table){
+    private static void columnMixer(String[][] table, String[] hashCode){
         int n = table.length;//y length
         int m = table[0].length;//x length
         for (int j = 0; j < m; j++) {
-            int k = func(j,m,n);
+            int k = func(j,hashCode);
             for (int l = 0; l < Math.abs(k); l++) {
                 if(k > 0){
                     moveColumnUp(table,j);
@@ -96,23 +132,23 @@ class MaskMatcher{
     private static void rowCellMixer(String[] str,String[] hash){
         for (int i = 0; i < str.length; i++) {
             if(isPhone(str[i])){
-                movePhone(str[i], hash);
+                str[i] = movePhone(str[i], hash);
                 continue;
             }
             if(isCard(str[i])){
-                moveCard(str[i], hash);
+                str[i] = moveCard(str[i], hash);
                 continue;
             }
             if(isDate(str[i])){
-                moveDate(str[i], hash);
+                str[i] = moveDate(str[i], hash);
                 continue;
             }
             if(isPassport(str[i])){
-                movePassport(str[i], hash);
+                str[i] = movePassport(str[i], hash);
                 continue;
             }
             if(isMail(str[i])){
-                moveMail(str[i], hash);
+                str[i] = moveMail(str[i], hash);
                 continue;
             }
         }
@@ -133,11 +169,11 @@ class MaskMatcher{
             newPhone+=(Integer.parseInt(subName[i])+Integer.parseInt(hashCode[k]))%10;
             k++;
         }
-        return newPhone;
+        return str.substring(0,str.length()-9)+newPhone;
     }
 
     protected static boolean isMail(String str){
-        if(str.matches("^[-\\w.]+@([A-z0-9][-A-z0-9]+\\.)+[A-z]{2,4}$")) return true;
+        if(str.matches("^[/\\S/u]+@([A-z0-9][-A-z0-9]+\\.)+[A-z]{2,4}$")) return true;
         else return false;
     }
 
@@ -160,19 +196,20 @@ class MaskMatcher{
     }
 
     private static String moveDate(String str, String[] hashCode){
+        System.out.println(hashCode[0]);
         int day = Integer.parseInt(str.substring(0,2))+Integer.parseInt(hashCode[0]);
         int month= (Integer.parseInt(str.substring(3,5))+Integer.parseInt(hashCode[1]));
         int year= (Integer.parseInt(str.substring(6,10))+Integer.parseInt(hashCode[2]));
         if (month > 12){
             month%=12;
-            System.out.println(month);
         }
         if (month %2 != 0 && day > 30 ){
-            day%=30;
+            day%=31;
         }
         else{
             day%=32;
         }
+
         String newDate ="";
         if (day < 10){
             newDate+= "0"+day+".";
@@ -188,6 +225,7 @@ class MaskMatcher{
         }
         return newDate+year;
     }
+
 
     protected static boolean isPassport(String str){
         if(str.matches("^([0-9]{4}\\s{1}[0-9]{6})?$")) return true;
@@ -236,7 +274,7 @@ class MaskMatcher{
     protected static void moveColumnUp(String[][] table, int j){
         String temp= table[0][j];//сохраняем первый индекс
         int n = table.length;//y length
-        for (int i = n - 1; i>0; i--)
+        for (int i = 1 ; i < n; i++)
             table[i-1][j]= table[i][j];//двигаемся снизу вверх и сдвигаем все вниз
         table[n-1][j]= temp;//устанавливаем на последнее место первый индекс
     }
@@ -246,7 +284,7 @@ class MaskMatcher{
         String temp= table[n-1][j];//сохраняем последний индекс
         for (int i = n - 1; i>0; i--)
             table[i][j]= table[i-1][j];//двигаемся снизу вверх и сдвигаем все вниз
-        table[0][j]= temp;//устанавливаем на первое место последний индекс
+        table[0][j]= temp;//устанавливаем на последнее место первый индекс
     }
 }
 
@@ -256,15 +294,15 @@ class DemaskMatcher extends MaskMatcher{
         for (int i = 0; i < table.length; i++) {
             rowCellDemixer(table[i],hash);//мешаем ячейки в зависимости от типа
         }
-        columnDemixer(table);// мешаем колонны
+        columnDemixer(table, hash);// мешаем колонны
 
     }
 
-    private static void columnDemixer(String[][] table){
+    private static void columnDemixer(String[][] table, String[] hashCode){
         int n = table.length;//y length
         int m = table[0].length;//x length
         for (int j = 0; j < m; j++) {
-            int k = func(j,m,n);
+            int k = func(j,hashCode);
             for (int l = 0; l < Math.abs(k); l++) {
                 if(k < 0){
                     moveColumnUp(table,j);
@@ -280,23 +318,24 @@ class DemaskMatcher extends MaskMatcher{
    private static void rowCellDemixer(String[] str, String[] hash){
         for (int i = 0; i < str.length; i++) {
             if(isPhone(str[i])){
-                demovePhone(str[i], hash);
+                str[i] = demovePhone(str[i], hash);
                 continue;
             }
             if(isCard(str[i])){
-                demoveCard(str[i], hash);
+                str[i] = demoveCard(str[i], hash);
                 continue;
             }
             if(isDate(str[i])){
-                demoveDate(str[i], hash);
+                str[i] = demoveDate(str[i], hash);
                 continue;
             }
             if(isPassport(str[i])){
-                demovePassport(str[i], hash);
+                str[i] = demovePassport(str[i], hash);
                 continue;
             }
             if(isMail(str[i])){
-                demoveMail(str[i], hash);
+                System.out.println("2");
+                str[i] = demoveMail(str[i], hash);
                 continue;
             }
         }
@@ -317,7 +356,7 @@ class DemaskMatcher extends MaskMatcher{
             }
             k++;
         }
-        return newPhone;
+        return str.substring(0,str.length()-9)+newPhone;
     }
 
     private static String demoveMail(String str, String[] hashCode){
@@ -334,23 +373,36 @@ class DemaskMatcher extends MaskMatcher{
     }
 
     private static String demoveDate(String str, String[] hashCode){
-        int day = Integer.parseInt(str.substring(0,2))+Integer.parseInt(hashCode[0]);
-        int month= (Integer.parseInt(str.substring(3,5))+Integer.parseInt(hashCode[1]));
-        int year= (Integer.parseInt(str.substring(6,10))+Integer.parseInt(hashCode[2]));
-        if (month > 12){
-            month%=12;
-            System.out.println(month);
+        int day = Integer.parseInt(str.substring(0,2))-Integer.parseInt(hashCode[0]);
+        int month= (Integer.parseInt(str.substring(3,5))-Integer.parseInt(hashCode[1]));
+        int year= (Integer.parseInt(str.substring(6,10))-Integer.parseInt(hashCode[2]));
+        if(month <= 0){
+            month= 12 + month;
         }
-        if (month %2 != 0 && day > 30 ){
-            day%=30;
+        else if(month > 12){
+            month= month%12;
+        }
+        if(day < 0 && month % 2 != 0){
+            day = 31 + day;
+        }
+        else if (day < 0 && month % 2 == 0){
+            day = 32 + day;
+        }
+
+        String newDate ="";
+        if (day < 10){
+            newDate+= "0"+day+".";
+        }
+        else {
+            newDate+= day+".";
+        }
+        if (month < 10) {
+            newDate+= "0"+month+".";
         }
         else{
-            day%=32;
+            newDate+= month+".";
         }
-        if (day < 10){
-            return "0"+day+"."+month+"."+year;
-        }
-        return day+"."+month+"."+year;
+        return newDate+year;
     }
 
 
