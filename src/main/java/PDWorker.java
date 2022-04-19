@@ -1,7 +1,4 @@
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -200,15 +197,14 @@ class MaskMatcher{
     }
 
     private static String moveDate(String str, String[] hashCode){
-        System.out.println(hashCode[0]);
         int day = Integer.parseInt(str.substring(0,2))+Integer.parseInt(hashCode[0]);
         int month= (Integer.parseInt(str.substring(3,5))+Integer.parseInt(hashCode[1]));
         int year= (Integer.parseInt(str.substring(6,10))+Integer.parseInt(hashCode[2]));
         if (month > 12){
             month%=12;
         }
-        if (month %2 != 0 && day > 30 ){
-            day%=31;
+        if (Integer.parseInt(str.substring(3,5)) %2 != 0 && day > 30 ){
+            day%=30;
         }
         else{
             day%=32;
