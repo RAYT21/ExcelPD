@@ -9,9 +9,7 @@ public class Starter {
 
     public static void main(String[] args) throws IOException, InvalidFormatException {
 
-        PDWorker.demaskingPD("C:\\Games\\mask_table.xlsx", "lsa");
-
-        /*Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(System.in);
         System.out.println("mode(masking/demasking): ");
         String mode =  sc.nextLine();
         if (!mode.equals("masking") && !mode.equals("demasking")){
@@ -44,6 +42,6 @@ public class Starter {
             sc.close();
             PDWorker.demaskingPD(path, password);
 
-        }*/
+        }
     }
 }
