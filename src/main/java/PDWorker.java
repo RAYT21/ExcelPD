@@ -12,6 +12,7 @@ public class PDWorker {
 
     public static void maskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
+        System.out.println("Input data:");
         for (int i = 0; i < table.length; i++) {
             System.out.printf("// ");
             for (int j = 0; j < table[i].length; j++) {
@@ -23,6 +24,7 @@ public class PDWorker {
         String[] hashCode = Integer.toString(password.hashCode()).split("");
         MaskMatcher.mask(table, hashCode);
         String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\mask_table.xlsx";
+        System.out.println("\n\n\n\nOutput data:");
         for (int i = 0; i < table.length; i++) {
             System.out.printf("// ");
             for (int j = 0; j < table[i].length; j++) {
@@ -37,6 +39,7 @@ public class PDWorker {
     public static void demaskingPD(String path, String password) throws IOException, InvalidFormatException {
         String[][] table = FileManager.reader(path);
         String[] hashCode = Integer.toString(password.hashCode()).split("");
+        System.out.println("Input data:");
         for (int i = 0; i < table.length; i++) {
             System.out.printf("// ");
             for (int j = 0; j < table[i].length; j++) {
@@ -47,6 +50,7 @@ public class PDWorker {
         }
         DemaskMatcher.demask(table, hashCode);
         String newFilePath = path.substring(0,path.lastIndexOf("\\"))+"\\demask_table.xlsx";
+        System.out.println("\n\n\n\nOutput data:");
         for (int i = 0; i < table.length; i++) {
             System.out.printf("// ");
             for (int j = 0; j < table[i].length; j++) {
@@ -106,15 +110,15 @@ class MaskMatcher{
     }
 
     public static void mask(String[][] tmp, String[] hash){
-        columnMixer(tmp,hash);// мешаем колонны
+        columnMixer(tmp,hash);
         for (int i = 0; i < tmp.length; i++) {
-            rowCellMixer(tmp[i], hash);//мешаем ячейки в зависимости от типа
+            rowCellMixer(tmp[i], hash);
         }
     }
 
     private static void columnMixer(String[][] table, String[] hashCode){
-        int n = table.length;//y length
-        int m = table[0].length;//x length
+        int n = table.length;
+        int m = table[0].length;
         for (int j = 0; j < m; j++) {
             int k = func(j,hashCode);
             for (int l = 0; l < Math.abs(k); l++) {
@@ -272,19 +276,19 @@ class MaskMatcher{
     }
 
     protected static void moveColumnUp(String[][] table, int j){
-        String temp= table[0][j];//сохраняем первый индекс
-        int n = table.length;//y length
+        String temp= table[0][j];
+        int n = table.length;
         for (int i = 1 ; i < n; i++)
-            table[i-1][j]= table[i][j];//двигаемся снизу вверх и сдвигаем все вниз
-        table[n-1][j]= temp;//устанавливаем на последнее место первый индекс
+            table[i-1][j]= table[i][j];
+        table[n-1][j]= temp;
     }
 
     protected static void moveColumnDown(String[][] table, int j){
-        int n = table.length;//y length
-        String temp= table[n-1][j];//сохраняем последний индекс
+        int n = table.length;
+        String temp= table[n-1][j];
         for (int i = n - 1; i>0; i--)
-            table[i][j]= table[i-1][j];//двигаемся снизу вверх и сдвигаем все вниз
-        table[0][j]= temp;//устанавливаем на последнее место первый индекс
+            table[i][j]= table[i-1][j];
+        table[0][j]= temp;
     }
 }
 
@@ -292,15 +296,15 @@ class DemaskMatcher extends MaskMatcher{
 
     public static void demask(String[][] table, String[] hash){
         for (int i = 0; i < table.length; i++) {
-            rowCellDemixer(table[i],hash);//мешаем ячейки в зависимости от типа
+            rowCellDemixer(table[i],hash);
         }
-        columnDemixer(table, hash);// мешаем колонны
+        columnDemixer(table, hash);
 
     }
 
     private static void columnDemixer(String[][] table, String[] hashCode){
-        int n = table.length;//y length
-        int m = table[0].length;//x length
+        int n = table.length;
+        int m = table[0].length;
         for (int j = 0; j < m; j++) {
             int k = func(j,hashCode);
             for (int l = 0; l < Math.abs(k); l++) {
@@ -334,7 +338,6 @@ class DemaskMatcher extends MaskMatcher{
                 continue;
             }
             if(isMail(str[i])){
-                System.out.println("2");
                 str[i] = demoveMail(str[i], hash);
                 continue;
             }
